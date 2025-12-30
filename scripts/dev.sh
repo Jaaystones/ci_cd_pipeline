@@ -69,7 +69,7 @@ echo "Database container is healthy! ✅"
 echo "Waiting for database '$DB_NAME' to be ready..."
 
 counter=0
-while ! docker exec -i $DB_CONTAINER psql -U "${DATABASE_USER:-postgres}" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME';" | grep -q 1; do
+while ! docker exec -i $DB_CONTAINER psql -U "${POSTGRES_USER:-neondb_owner}" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME';" | grep -q 1; do
   sleep 2
   counter=$((counter + 2))
   if [ $counter -ge $TIMEOUT ]; then
@@ -98,6 +98,6 @@ docker compose -f docker-compose.dev.yml exec -T ci_cd_pipeline_app_dev pnpm run
 # =========================
 echo ""
 echo "Development environment is up and running!"
-echo " - App: http://localhost:${PORT:-3000}"
+echo " - App: http://localhost:4000"
 echo " - Neon Local DB container: $DB_CONTAINER"
 echo " - Use Ctrl+C to stop the app and containers."

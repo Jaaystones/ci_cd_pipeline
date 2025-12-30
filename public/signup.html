@@ -70,21 +70,18 @@
     <div class="container">
         <h2>Sign Up</h2>
         <form action="/api/auth/sign-up" method="POST">
-            <input type="text" name="name" placeholder="Name" required>
-            <input type="email" name="email" placeholder="Email" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <div class="role-toggle">
-                <label>
-                    <input type="radio" name="role" value="user" checked> User
-                </label>
-                <label>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" placeholder="Name" required>
+            <label for="email">Email</label>
+            <input type="hidden" name="role" value="user">
                     <input type="radio" name="role" value="admin"> Admin
                 </label>
             </div>
             <button type="submit">Sign Up</button>
         </form>
         <div class="link">
-            <a href="/auth/sign-in">Already have an account? Sign In</a>
+            <a href="/signin.html">Already have an account? Sign In</a>
         </div>
     </div>
 </body>

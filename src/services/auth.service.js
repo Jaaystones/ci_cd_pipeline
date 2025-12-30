@@ -48,7 +48,7 @@ export const createUser = async ({ name, email, password, role }) => {
         
   } catch (e) {
     logger.error('Error creating user:', e);
-    throw e;
+    throw new Error('Failed to create user');
   }
 };
 
@@ -70,6 +70,6 @@ export const authenticateUser = async ({ email, password }) => {
         
   } catch (e) {
     logger.error('Error authenticating user:', e);
-    throw e;
+    throw new Error('Failed to authenticate user');
   }
 };

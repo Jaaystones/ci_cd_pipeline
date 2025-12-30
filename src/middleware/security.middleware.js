@@ -12,7 +12,7 @@ export const securityMiddleware = async (req , res, next) => {
     switch(role) {
       case 'admin':
         limit = 20;
-        message = 'Admin rate limit exceededd (20 per minute). slow down.';
+        message = 'Admin rate limit exceeded (20 per minute). Slow down.';
         break;
       case 'user':
         limit = 10;
@@ -36,19 +36,19 @@ export const securityMiddleware = async (req , res, next) => {
     if (decision.isDenied() && decision.reason.isBot()) {
       logger.warn(`Blocked bot request from ${req.ip}`, { userAgent: req.get('User-Agent'), path: req.path});
 
-      res.status(403).json({ error: 'Access denied: Bot traffic is not allowed.' });
+      return res.status(403).json({ error: 'Access denied: Bot traffic is not allowed.' });
     }
 
     if (decision.isDenied() && decision.reason.isShield()) {
       logger.warn(`Shield blocked request from ${req.ip}`, { userAgent: req.get('User-Agent'), path: req.path, method:req.method});
         
-      res.status(403).json({ error: 'Access denied: Request blocked by shield policy.' });
+      return res.status(403).json({ error: 'Access denied: Request blocked by shield policy.' });
     }
 
-    if (decision.isDenied() && decision.reason.isRateLmit()) {
+    if (decision.isDenied() && decision.reason.isRateLimit()) {
       logger.warn(`Rate limit exceeded from ${req.ip}`, { userAgent: req.get('User-Agent'), path: req.path, method:req.method});
         
-      res.status(403).json({ error: 'Access denied: To many requests.' });
+      return res.status(403).json({ error: 'Access denied: Too many requests.' });
     }
 
     next();
@@ -56,6 +56,6 @@ export const securityMiddleware = async (req , res, next) => {
   } catch (e) {
     console.error('Arcjet middleware error:', e);
     // Optionally handle errors, e.g., send a 500 response
-    res.status(500).json({ error: 'Internal Server Error', message:'Something went wrong with security middleware' });
+    return res.status(500).json({ error: 'Internal Server Error', message:'Something went wrong with security middleware' });
   };
 };
