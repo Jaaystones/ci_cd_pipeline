@@ -1,0 +1,15 @@
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ci_cd_pipeline_app_prod
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+    ports:
+      - '4000:4000'
+    restart: unless-stopped

@@ -1,9 +1,16 @@
 import 'dotenv/config';
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 
-const sql = neon(process.env.DATABASE_URL);
+const pool = new Pool({
+  host: process.env.DATABASE_HOST,
+  port: Number(process.env.DATABASE_PORT),
+  user: process.env.DATABASE_USER,
+  password: process.env.DATABASE_PASSWORD,
+  database: process.env.DATABASE_NAME,
+  ssl: false,
+});
 
-const db = drizzle(sql);
+const db = drizzle(pool);
 
-export { db, sql};
+export { db, pool };

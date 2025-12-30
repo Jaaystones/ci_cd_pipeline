@@ -1,0 +1,33 @@
+services:
+  neon_local_dev:
+    image: postgres:15
+    container_name: neon_local_dev
+    environment:
+      POSTGRES_USER: neondb_owner
+      POSTGRES_PASSWORD: npg_YNDm4e0OFfGP
+      POSTGRES_DB: neondb_owner
+    ports:
+      - "55432:5432"
+    volumes:
+      - neon_local_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neondb_owner"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ci_cd_pipeline_app_dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ci_cd_pipeline_app_dev
+    env_file:
+      - .env.development
+    depends_on:
+      neon_local_dev:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+
+volumes:
+  neon_local_data:
