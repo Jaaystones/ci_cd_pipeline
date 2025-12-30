@@ -1,142 +1,190 @@
-# Stones API – Docker + Neon Setup
+# CI/CD Pipeline API
 
-This project is a Node.js/Express REST API that uses Neon (serverless Postgres) with Drizzle ORM.
+A Node.js/Express REST API with user authentication, built with Drizzle ORM and PostgreSQL.
 
-This document explains how to run the app in Docker using **Neon Local** for development and
-how to deploy the same image against a **Neon Cloud** database in production.
+## Features
+
+- User registration and login with JWT authentication
+- PostgreSQL database with Drizzle ORM
+- Docker development environment
+- Security middleware with Arcjet
+- HTML UIs for sign-in and sign-up
+- Input validation with Zod
 
 ## Prerequisites
 
-- Docker and Docker Compose installed
-- A Neon account with a project created
-- For development:
-  - Neon API key
-  - Neon project ID
-  - Optional: parent branch ID for creating ephemeral dev/test branches
-- For production:
-  - A Neon Cloud connection string (the `DATABASE_URL` from the Neon console)
+- Node.js 20+
+- Docker and Docker Compose
+- pnpm
 
-## Environment configuration
+## Quick Start
 
-The application always reads its database connection from the `DATABASE_URL` environment variable.
-The **same image** is used for both development and production; only the environment variables differ.
+1. Clone the repository
+2. Install dependencies: `pnpm install`
+3. Start the development environment: `pnpm run dev:docker`
 
-### Development – `.env.development`
+The API will be available at `http://localhost:4000`
 
-For local development with Neon Local, configure `.env.development` (created for you in this repo)
-with values appropriate for your Neon project:
+## Environment Configuration
+
+### Development (.env.development)
 
 ```bash
-# Application
+# Server
+PORT=4000
 NODE_ENV=development
-PORT=4000
 LOG_LEVEL=info
-JWT_SECRET=change_me_for_local_dev_only
 
-# Neon Local proxy configuration
-NEON_API_KEY=your_neon_api_key_here
-NEON_PROJECT_ID=your_neon_project_id_here
-PARENT_BRANCH_ID=your_parent_branch_id_here  # optional, used as the parent for ephemeral branches
+# Database
+DATABASE_NAME=neondb_owner
+DATABASE_USER=neondb_owner
+DATABASE_PASSWORD=xxxxxxxxxxx
+DATABASE_HOST=neon_local_dev
+DATABASE_PORT=5432
+DATABASE_URL=postgres://neondb_owner:xxxx@neon_local_dev:5432/xxxx
 
-# Neon Local + serverless driver integration
-DRIVER=serverless
-NEON_LOCAL_FETCH_ENDPOINT=http://db:5432/sql
+# JWT
+JWT_SECRET=your_jwt_secret_key
 
-# Database URL used by the app and Drizzle ORM in development.
-# `db` is the Neon Local service name from docker-compose.dev.yml.
-DATABASE_URL=postgres://neon:npg@db:5432/neondb
+# Arcjet
+ARCJET_API_KEY=your_arcjet_key
+ARCJET_ENV=development
 ```
 
-### Production – `.env.production`
-
-For production, configure `.env.production` with your real secrets and Neon Cloud database URL.
-Only a template with placeholders is committed to the repo; replace the values in your deployment
-environment (and avoid committing real secrets back to git).
+### Production (.env.production)
 
 ```bash
-# Application
-NODE_ENV=production
+# Server
 PORT=4000
+NODE_ENV=production
 LOG_LEVEL=info
-JWT_SECRET=replace_with_strong_production_secret
 
-# Neon Cloud production database URL (example)
-DATABASE_URL=postgres://user:password@your-neon-host.neon.tech/your_db_name?sslmode=require
+# Database
+DATABASE_NAME=your_prod_db
+DATABASE_USER=your_prod_user
+DATABASE_PASSWORD=your_prod_password
+DATABASE_HOST=your_prod_host
+DATABASE_PORT=5432
+DATABASE_SSL=true
+DATABASE_URL=your_production_database_url
+
+# JWT
+JWT_SECRET=your_production_jwt_secret
+
+# Arcjet
+ARCJET_API_KEY=your_prod_arcjet_key
+ARCJET_ENV=production
 ```
 
-## How the app chooses the database
+## Running Locally
 
-The database client is configured in `src/config/database.js`:
+### With Docker (Recommended)
 
-- In **non-production** (`NODE_ENV !== 'production'`):
-  - `NEON_LOCAL_FETCH_ENDPOINT` (defaulting to `http://db:5432/sql`) is used to talk to the
-    Neon Local proxy container.
-  - `DATABASE_URL` should point at the Neon Local Postgres endpoint (service name `db` from
-    `docker-compose.dev.yml`).
-- In **production** (`NODE_ENV === 'production'`):
-  - The app connects directly to Neon Cloud using the `DATABASE_URL` value from `.env.production`.
-  - No Neon Local proxy is involved in production.
+```bash
+pnpm run dev:docker
+```
 
-## Running locally with Neon Local (development)
+This starts:
+- PostgreSQL database in Docker
+- Node.js app in Docker
+- Applies database migrations
+- Serves the API at http://localhost:4000
 
-1. Ensure `.env.development` is filled in with your Neon API key, project ID, and (optionally)
-   a `PARENT_BRANCH_ID` for the branch you want to clone from.
-2. Start the development stack (app + Neon Local):
+### Without Docker
 
-   ```bash
-   docker compose -f docker-compose.dev.yml up --build
-   ```
+```bash
+# Start PostgreSQL (e.g., via Docker or local install)
+# Then:
+pnpm install
+pnpm run db:generate
+pnpm run db:migrate
+pnpm dev
+```
 
-3. Once the containers are up, the API will be available at:
+## API Endpoints
 
-   - Application: http://localhost:4000
-   - Health check: http://localhost:4000/health
+### Authentication
 
-4. Neon Local will automatically create an **ephemeral branch** for this dev environment when
-   the `db` container starts and delete it when the container stops. This gives you an isolated
-   database for each local run without manual cleanup.
+- `POST /api/auth/sign-up` - Register a new user
+- `POST /api/auth/sign-in` - Login user
+- `POST /api/auth/sign-out` - Logout user
 
-### Notes for local development
+### UI Pages
 
-- The `app` service mounts the current directory into the container (`.:/app`) and runs the
-  code from there. You can use your normal local editor, and changes will be reflected inside
-  the container.
-- The default command in the image is `node src/index.js`, but you can adjust the `command`
-  in `docker-compose.dev.yml` to use `pnpm dev` if you prefer watch mode.
+- `GET /signin.html` - Sign-in form
+- `GET /signup.html` - Sign-up form
 
-## Running against Neon Cloud (production)
+### Health Check
 
-1. In Neon Cloud, create your production database and copy the connection string from the
-   Neon console.
-2. Update `.env.production` on your deployment machine with:
+- `GET /health` - Application health status
+- `GET /api` - API status
 
-   - A strong `JWT_SECRET`
-   - The Neon Cloud `DATABASE_URL` value
-3. Build and start the production stack:
+## Database
 
-   ```bash
-   docker compose -f docker-compose.prod.yml up --build -d
-   ```
+The app uses PostgreSQL with Drizzle ORM for type-safe database operations.
 
-4. The API will listen on `http://localhost:4000` by default (or the port you configure).
+### Migrations
 
-In this mode, the application connects **directly** to Neon Cloud:
+```bash
+pnpm run db:generate  # Generate migration files
+pnpm run db:migrate   # Apply migrations
+pnpm run db:rollback # Rollback last migration
+```
 
-- There is **no** Neon Local proxy container.
-- Only `DATABASE_URL` and other app secrets from `.env.production` are required.
+## Project Structure
 
-## Switching between dev and prod
+```
+src/
+├── app.js              # Express app setup
+├── index.js            # Server entry point
+├── config/
+│   ├── database.js     # Database connection
+│   └── logger.js       # Logging configuration
+├── controllers/
+│   └── auth.controller.js
+├── middleware/
+│   └── security.middleware.js
+├── models/
+│   └── user.model.js   # Drizzle schema
+├── routes/
+│   └── auth.route.js
+├── services/
+│   └── auth.service.js
+├── utils/
+│   ├── cookies.js
+│   ├── format.js
+│   ├── jwt.js
+│   └── validations/
+│       └── auth.validation.js
+public/
+├── signin.html
+└── signup.html
+```
 
-- **Dev (`docker-compose.dev.yml`)**
-  - `NODE_ENV=development`
-  - `DATABASE_URL` → Neon Local (`postgres://neon:npg@db:5432/neondb`)
-  - Neon Local uses `NEON_API_KEY`, `NEON_PROJECT_ID`, and (optionally) `PARENT_BRANCH_ID` to
-    create ephemeral branches for each Docker environment.
+## Security
 
-- **Prod (`docker-compose.prod.yml`)**
-  - `NODE_ENV=production`
-  - `DATABASE_URL` → Neon Cloud URL from the Neon console (e.g. `...neon.tech...`)
-  - No Neon Local proxy or Neon API key is used.
+- Password hashing with bcrypt
+- JWT tokens for authentication
+- Arcjet security middleware for bot protection and rate limiting
+- Input validation with Zod
+- CORS and Helmet for security headers
 
-With this setup, you can confidently develop and test against disposable Neon branches locally
-while keeping production connected to your managed Neon Cloud database.
+## Development
+
+```bash
+pnpm dev          # Start with watch mode (local)
+pnpm lint         # Run ESLint
+pnpm format       # Format code with Prettier
+pnpm test         # Run tests (when implemented)
+```
+
+## Deployment
+
+Build the Docker image and deploy with your preferred method.
+
+```bash
+docker build -t ci-cd-pipeline .
+docker run -p 4000:4000 --env-file .env.production ci-cd-pipeline
+```
+
+For production, ensure `NODE_ENV=production` and use a production database.
